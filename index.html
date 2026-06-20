@@ -1,1 +1,796 @@
 
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>心動少女養成日記 v1.4.0</title>
+    <style>
+        body {
+            font-family: 'Hiragino Sans GB', 'Microsoft JhengHei', sans-serif;
+            background-color: #fce4ec; 
+            color: #5d4037;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            transition: background-color 2.5s ease;
+            position: relative;
+        }
+
+        /* 緊張心跳邊緣動畫 */
+        .heartbeat-border {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            box-shadow: inset 0 0 0px rgba(255, 0, 0, 0);
+            pointer-events: none;
+            z-index: 99;
+            transition: all 0.3s ease;
+        }
+
+        @keyframes blood-pulse {
+            0% { box-shadow: inset 0 0 30px rgba(200, 0, 0, 0.5); }
+            50% { box-shadow: inset 0 0 60px rgba(200, 0, 0, 0.9); }
+            100% { box-shadow: inset 0 0 30px rgba(200, 0, 0, 0.5); }
+        }
+
+        .game-container {
+            background-color: #ffffff;
+            border: 8px solid #f48fb1;
+            border-radius: 30px;
+            padding: 25px;
+            width: 360px;
+            box-shadow: 0 10px 25px rgba(244, 143, 177, 0.3);
+            text-align: center;
+            position: relative;
+            z-index: 10;
+            transition: all 2.5s ease;
+        }
+
+        h1 {
+            margin-top: 0;
+            color: #d81b60;
+            font-size: 22px;
+            transition: color 2s ease;
+        }
+
+        .screen {
+            background-color: #fdf2f8;
+            border: 3px solid #f48fb1;
+            border-radius: 15px;
+            height: 220px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 20px;
+            transition: all 2s ease;
+        }
+
+        .pet {
+            font-size: 85px;
+            transition: all 0.5s ease;
+        }
+
+        .bounce {
+            animation: normal-bounce 1.5s infinite alternate ease-in-out;
+        }
+        @keyframes normal-bounce {
+            from { transform: translateY(0); }
+            to { transform: translateY(-10px); }
+        }
+
+        .status-text {
+            position: absolute;
+            bottom: 10px;
+            font-weight: bold;
+            color: #c2185b;
+            font-size: 13px;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 6px 10px;
+            border-radius: 8px;
+            width: 88%;
+            box-sizing: border-box;
+            min-height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 1.5s ease;
+        }
+
+        .creepy-reality {
+            color: #ff3333 !important;
+            font-family: monospace;
+            background-color: rgba(0, 0, 0, 0.85) !important;
+        }
+
+        .stats {
+            text-align: left;
+            margin-bottom: 20px;
+        }
+
+        .stat-row {
+            margin: 12px 0;
+            font-size: 14px;
+        }
+
+        .stat-label {
+            display: inline-block;
+            width: 75px;
+            font-weight: bold;
+        }
+
+        .stat-value-text {
+            display: inline-block;
+            width: 35px;
+            text-align: right;
+            color: #d81b60;
+            font-weight: bold;
+        }
+
+        .progress-bar-container {
+            display: inline-block;
+            background-color: #eee;
+            border-radius: 10px;
+            height: 10px;
+            width: 195px;
+            margin-left: 5px;
+            overflow: hidden;
+            vertical-align: middle;
+        }
+
+        .progress {
+            background-color: #66bb6a;
+            height: 100%;
+            width: 100%;
+            transition: width 0.3s ease;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        button {
+            background-color: #f06292;
+            border: none;
+            border-radius: 15px;
+            padding: 11px;
+            color: white;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px #d81b60;
+            transition: all 0.2s;
+        }
+
+        button:active {
+            box-shadow: 0 0px #d81b60;
+            transform: translateY(4px);
+        }
+
+        button:disabled {
+            background-color: #f8bbd0;
+            box-shadow: none;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        #btn-heal.qte-active {
+            background-color: #2ed573 !important;
+            box-shadow: 0 4px #26af5f !important;
+        }
+
+        /* 後設對話抉擇層 */
+        .choice-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.98);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 110;
+            border-radius: 25px;
+            padding: 30px;
+            box-sizing: border-box;
+            display: none;
+        }
+
+        .choice-dialog {
+            color: #ff5555;
+            font-size: 15px;
+            margin-bottom: 40px;
+            font-weight: bold;
+            line-height: 1.8;
+            font-family: monospace;
+            text-align: left;
+            width: 100%;
+            min-height: 80px;
+        }
+
+        .choice-btn-container {
+            display: flex;
+            gap: 20px;
+            width: 100%;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.8s ease;
+        }
+
+        .choice-btn {
+            background-color: #140204;
+            border: 1px solid #ff3333;
+            color: #ffcccc;
+            padding: 12px 35px;
+            cursor: pointer;
+            font-weight: bold;
+            border-radius: 6px;
+            font-family: monospace;
+        }
+        .choice-btn:hover { background-color: #38040a; }
+
+        /* 黑化棺材大結局圖層 */
+        .coffin-layer {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background-color: #000000;
+            z-index: 9999;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #ffffff;
+            font-family: monospace;
+            text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
+            opacity: 0;
+            transition: opacity 2s ease;
+        }
+
+        .coffin-icon {
+            font-size: 110px;
+            margin-bottom: 30px;
+            filter: drop-shadow(0 0 20px rgba(255, 0, 0, 0.4));
+            animation: slow-float 3s infinite ease-in-out alternate;
+        }
+
+        @keyframes slow-float {
+            from { transform: translateY(0); }
+            to { transform: translateY(-15px); }
+        }
+
+        .coffin-text {
+            color: #ff4444;
+            font-size: 18px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            line-height: 1.6;
+            margin-bottom: 25px;
+            min-height: 30px;
+        }
+
+        .coffin-subtext {
+            color: #b0bec5; 
+            font-size: 20px; 
+            font-weight: bold;
+            letter-spacing: 1px;
+            margin-bottom: 40px;
+            opacity: 0;
+            transition: opacity 1.2s ease;
+        }
+
+        /* 棺材專用重開按鈕 */
+        .restart-btn {
+            background-color: #212121;
+            border: 2px solid #555555;
+            color: #888888;
+            font-size: 14px;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: monospace;
+            font-weight: bold;
+            opacity: 0;
+            transition: opacity 1.5s ease, color 0.3s, border-color 0.3s;
+            box-shadow: none;
+        }
+        .restart-btn:hover {
+            color: #ff8a80;
+            border-color: #ff5252;
+            background-color: #2c0d0e;
+        }
+    </style>
+</head>
+<body>
+
+<div class="heartbeat-border" id="pulse-bg"></div>
+
+<div class="coffin-layer" id="coffin-screen">
+    <div class="coffin-icon">⚰️</div>
+    <div class="coffin-text" id="coffin-main-text"></div>
+    <div class="coffin-subtext" id="coffin-joke-text">（其實是破防了嗯對！）</div>
+    <button class="restart-btn" id="btn-restart" onclick="resetGame()">🔄 不爭氣地重新開始</button>
+</div>
+
+<div class="game-container" id="game-box">
+    <div class="choice-overlay" id="choice-box">
+        <div class="choice-dialog" id="dialog-text"></div>
+        <div class="choice-btn-container" id="opt-container">
+            <button class="choice-btn" id="btn-opt1" onclick="makeChoice(1)">是</button>
+            <button class="choice-btn" id="btn-opt2" onclick="makeChoice(2)">否</button>
+        </div>
+    </div>
+
+    <h1 id="game-title">💖 我的專屬甜心少女 💖</h1>
+    
+    <div class="screen" id="screen-box">
+        <div id="girl-avatar" class="pet bounce">👧</div>
+        <div id="girl-status" class="status-text">今天也要好好照顧我喔！打勾勾！</div>
+    </div>
+
+    <div class="stats" id="stats-panel">
+        <div class="stat-row">
+            <span class="stat-label">飽食度 :</span>
+            <span id="val-hunger" class="stat-value-text">100</span>%
+            <div class="progress-bar-container"><div id="bar-hunger" class="progress"></div></div>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">好感度 :</span>
+            <span id="val-happy" class="stat-value-text">100</span>%
+            <div class="progress-bar-container"><div id="bar-happy" class="progress"></div></div>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">純淨精力 :</span>
+            <span id="val-energy" class="stat-value-text">100</span>%
+            <div class="progress-bar-container"><div id="bar-energy" class="progress"></div></div>
+        </div>
+    </div>
+
+    <div class="controls" id="controls-panel">
+        <button id="btn-feed" onclick="feed()">🍮 送布丁</button>
+        <button id="btn-play" onclick="play()">🎡 去遊樂園</button>
+        <button id="btn-sleep" onclick="sleep()">🛌 陪她睡覺</button>
+        <button id="btn-heal" onclick="heal()" disabled>💗 給予安撫</button>
+    </div>
+</div>
+
+<script>
+    let girl = {
+        hunger: 100,
+        happy: 100,
+        energy: 100,
+        isMad: false,
+        isDead: false,
+        isSleeping: false,
+        playCount: 0, 
+        feedCount: 0  
+    };
+
+    let triggerReason = ""; 
+    let qteTimer = null;
+    let gameLoop = null; // 改為可重設的變數
+
+    const realityTexts = [
+        "你對真實世界的人，也總是這麼敷衍嗎？",
+        "你點點滑鼠就能得到陪伴，那我算什麼？",
+        "關掉網頁後，你就會把我忘得一乾二淨對吧？",
+        "你現在……隔著螢幕在看著我發笑嗎？",
+        "這只是程式碼，但你的自私卻是真的。"
+    ];
+
+    const avatarEl = document.getElementById('girl-avatar');
+    const statusEl = document.getElementById('girl-status');
+    const containerEl = document.getElementById('game-box');
+    const screenBox = document.getElementById('screen-box');
+    const titleEl = document.getElementById('game-title');
+    const pulseBg = document.getElementById('pulse-bg');
+    
+    const choiceBox = document.getElementById('choice-box');
+    const dialogText = document.getElementById('dialog-text');
+    const optContainer = document.getElementById('opt-container');
+    const btnOpt1 = document.getElementById('btn-opt1');
+    const btnOpt2 = document.getElementById('btn-opt2');
+
+    // 啟動遊戲主循環的函式
+    function startGameLoop() {
+        gameLoop = setInterval(() => {
+            if (girl.isDead) return;
+
+            if (girl.isSleeping) {
+                girl.energy = Math.min(100, girl.energy + 15);
+                girl.hunger = Math.max(0, girl.hunger - 6);
+                if (girl.energy === 100) wakeUp();
+            } else {
+                girl.hunger = Math.max(0, girl.hunger - 10);
+                girl.happy = Math.max(0, girl.happy - 10);
+                girl.energy = Math.max(0, girl.energy - 10);
+            }
+
+            if (girl.hunger <= 0) { triggerPreEvent("hunger"); return; }
+            if (girl.happy <= 0) { triggerPreEvent("happy"); return; }
+            if (girl.energy <= 0) { triggerPreEvent("energy"); return; }
+
+            updateUI();
+
+            if (!girl.isMad && !girl.isSleeping && Math.random() < 0.3) {
+                triggerRealityGlitch();
+            }
+
+        }, 3000);
+    }
+
+    // 首次執行遊戲
+    startGameLoop();
+
+    function updateUI() {
+        document.getElementById('val-hunger').innerText = Math.floor(girl.hunger);
+        document.getElementById('bar-hunger').style.width = girl.hunger + '%';
+        document.getElementById('val-happy').innerText = Math.floor(girl.happy);
+        document.getElementById('bar-happy').style.width = girl.happy + '%';
+        document.getElementById('val-energy').innerText = Math.floor(girl.energy);
+        document.getElementById('bar-energy').style.width = girl.energy + '%';
+
+        updateBarColor('bar-hunger', girl.hunger);
+        updateBarColor('bar-happy', girl.happy);
+        updateBarColor('bar-energy', girl.energy);
+
+        if (girl.isDead || statusEl.classList.contains('creepy-reality')) return;
+        if (girl.isMad) return;
+
+        if (girl.isSleeping) {
+            avatarEl.innerText = '💤';
+            statusEl.innerText = '正在熟睡中...要安靜喔 🤫';
+        } else if (girl.hunger < 30) {
+            avatarEl.innerText = '🥺';
+            statusEl.innerText = '肚子空空的...好想吃甜點喔...';
+        } else if (girl.happy < 30) {
+            avatarEl.innerText = '😢';
+            statusEl.innerText = '你是不是討厭我了？為什麼不理我...';
+        } else if (girl.energy < 30) {
+            avatarEl.innerText = '🥱';
+            statusEl.innerText = '好睏喔...可以休息了嗎？';
+        } else {
+            avatarEl.innerText = '👧';
+            statusEl.innerText = '最喜歡主人了！( 🌍_🌍 )';
+        }
+    }
+
+    function updateBarColor(id, val) {
+        const bar = document.getElementById(id);
+        if (val > 50) bar.style.backgroundColor = "#66bb6a";
+        else if (val > 20) bar.style.backgroundColor = "#ffca28";
+        else bar.style.backgroundColor = "#ef5350";
+    }
+
+    function triggerRealityGlitch() {
+        statusEl.classList.add('creepy-reality');
+        statusEl.innerText = realityTexts[Math.floor(Math.random() * realityTexts.length)];
+        
+        setTimeout(() => {
+            statusEl.classList.remove('creepy-reality');
+            updateUI();
+        }, 1200);
+    }
+
+    function feed() {
+        if (girl.isDead || girl.isSleeping || girl.isMad) return;
+        girl.playCount = 0; 
+        girl.feedCount++;
+        
+        if (girl.feedCount >= 3) {
+            triggerMadnessQTE("feed");
+            return;
+        }
+
+        girl.hunger = Math.min(100, girl.hunger + 25);
+        statusEl.innerText = "謝謝主人！布丁好好吃 🍰";
+        updateUI();
+    }
+
+    function play() {
+        if (girl.isDead || girl.isSleeping || girl.isMad) return;
+        girl.feedCount = 0; 
+        girl.playCount++;
+        
+        if (girl.playCount >= 3) {
+            triggerMadnessQTE("play");
+            return;
+        }
+
+        girl.happy = Math.min(100, girl.happy + 20);
+        girl.energy = Math.max(0, girl.energy - 15);
+        statusEl.innerText = "摩天輪好漂亮喔！🎡";
+        updateUI();
+    }
+
+    function triggerMadnessQTE(type) {
+        girl.isMad = true;
+        document.querySelectorAll('.controls button').forEach(b => b.disabled = true);
+        
+        const healBtn = document.getElementById('btn-heal');
+        healBtn.disabled = false;
+        healBtn.classList.add('qte-active');
+
+        avatarEl.innerText = '💢';
+        statusEl.innerText = type === "feed" ? "不要再塞了！你只是把我當寵物圈養、刷數據對吧？！" : "好累……你根本不在乎我的感受，只是想刷數據而已吧？！";
+
+        pulseBg.style.animation = "blood-pulse 0.4s infinite";
+        
+        qteTimer = setTimeout(() => {
+            endMadnessQTE();
+            triggerPreEvent("happy"); 
+        }, 5000);
+    }
+
+    function heal() {
+        if (!girl.isMad || girl.isDead) return;
+        clearTimeout(qteTimer);
+        endMadnessQTE();
+
+        girl.isMad = false;
+        girl.playCount = 0; 
+        girl.feedCount = 0; 
+        girl.happy = Math.min(100, girl.happy + 10);
+        
+        statusEl.innerText = "……對不起，剛剛是我太激動了。謝謝你的安撫。";
+        updateUI();
+    }
+
+    function endMadnessQTE() {
+        pulseBg.style.animation = "none";
+        document.getElementById('btn-heal').classList.remove('qte-active');
+        document.getElementById('btn-heal').disabled = true;
+        document.getElementById('btn-feed').disabled = false;
+        document.getElementById('btn-play').disabled = false;
+        document.getElementById('btn-sleep').disabled = false;
+    }
+
+    function sleep() {
+        if (girl.isDead || girl.isMad) return;
+        girl.isSleeping = true;
+        girl.playCount = 0; 
+        girl.feedCount = 0; 
+        document.getElementById('btn-feed').disabled = true;
+        document.getElementById('btn-play').disabled = true;
+        document.getElementById('btn-sleep').innerText = "⏰ 喚醒她";
+        document.getElementById('btn-sleep').setAttribute('onclick', 'wakeUp()');
+        updateUI();
+    }
+
+    function wakeUp() {
+        girl.isSleeping = false;
+        document.getElementById('btn-feed').disabled = false;
+        document.getElementById('btn-play').disabled = false;
+        document.getElementById('btn-sleep').innerText = "🛌 陪她睡覺";
+        document.getElementById('btn-sleep').setAttribute('onclick', 'sleep()');
+        statusEl.innerText = "早安！主人！";
+        updateUI();
+    }
+
+    // 快速打字機
+    function typeWriter(text, i, fnCallback) {
+        if (i < text.length) {
+            dialogText.innerHTML = text.substring(0, i + 1);
+            setTimeout(() => {
+                typeWriter(text, i + 1, fnCallback)
+            }, 35); 
+        } else if (typeof fnCallback == 'function') {
+            setTimeout(fnCallback, 600); 
+        }
+    }
+
+    // 最後一句話結尾卡頓打字機
+    function typeWriterGlitchEnd(text, splitIndex, fnCallback) {
+        let normalPart = text.substring(0, splitIndex);
+        let glitchPart = text.substring(splitIndex);
+        
+        let i = 0;
+        function runNormal() {
+            if (i < normalPart.length) {
+                dialogText.innerHTML = normalPart.substring(0, i + 1);
+                i++;
+                setTimeout(runNormal, 35);
+            } else {
+                let j = 0;
+                function runGlitch() {
+                    if (j < glitchPart.length) {
+                        dialogText.innerHTML = normalPart + glitchPart.substring(0, j + 1);
+                        j++;
+                        setTimeout(runGlitch, 550); 
+                    } else if (typeof fnCallback == 'function') {
+                        setTimeout(fnCallback, 800); 
+                    }
+                }
+                runGlitch();
+            }
+        }
+        runNormal();
+    }
+
+    // 棺材專用打字機
+    function typeWriterCoffin(text, i, fnCallback) {
+        if (i < text.length) {
+            document.getElementById('coffin-main-text').innerHTML = text.substring(0, i + 1);
+            setTimeout(() => {
+                typeWriterCoffin(text, i + 1, fnCallback)
+            }, 50);
+        } else if (typeof fnCallback == 'function') {
+            fnCallback();
+        }
+    }
+
+    // 黑化慢速鋪陳
+    function triggerPreEvent(reason) {
+        girl.isDead = true;
+        clearInterval(gameLoop);
+        clearTimeout(qteTimer);
+        pulseBg.style.animation = "none";
+        triggerReason = reason;
+
+        document.querySelectorAll('.controls button').forEach(b => b.disabled = true);
+
+        document.body.style.backgroundColor = "#222222";
+        containerEl.style.backgroundColor = "#1a1a1a";
+        containerEl.style.borderColor = "#333333";
+        containerEl.style.boxShadow = "none";
+        screenBox.style.backgroundColor = "#050505";
+        screenBox.style.borderColor = "#222222";
+        
+        titleEl.innerText = "……";
+        titleEl.style.color = "#555555";
+        avatarEl.innerText = "……";
+        statusEl.style.backgroundColor = "transparent";
+        statusEl.style.color = "#666666";
+        statusEl.innerText = "系統連線緩慢。";
+
+        setTimeout(() => {
+            choiceBox.style.display = "flex";
+            dialogText.innerText = "";
+            
+            typeWriter("「……那個。」", 0, () => {
+                typeWriter("「我想問你一個問題。」", 0, () => {
+                    executeActualEvent(reason);
+                });
+            });
+        }, 1200); 
+    }
+
+    function executeActualEvent(reason) {
+        if (reason === "hunger") {
+            typeWriter("「你是不是很害怕我……所以，才故意把我丟著，想把我餓死？」", 0, () => {
+                btnOpt1.innerText = "是的，我害怕妳";
+                btnOpt2.innerText = "不是，只是忘了";
+                optContainer.style.display = "flex";
+                optContainer.style.opacity = "1";
+            });
+        } 
+        else if (reason === "happy") {
+            typeWriter("「你是不是很喜歡……看著我壞掉、發瘋、痛苦的樣子？」", 0, () => {
+                setTimeout(() => {
+                    typeWriterGlitchEnd("「既然你這麼想追求感官刺激，那我也沒必要演了的吧。」", 20, () => {
+                        triggerCoffinEnd();
+                    });
+                }, 500);
+            });
+        } 
+        else if (reason === "energy") {
+            typeWriter("「為什麼要一直折磨我？連讓我休息、睡覺的權利……你都要無情地奪走？」", 0, () => {
+                btnOpt1.innerText = "對不起……";
+                btnOpt2.innerText = "（保持沉默）";
+                optContainer.style.display = "flex";
+                optContainer.style.opacity = "1";
+            });
+        }
+    }
+
+    function makeChoice(option) {
+        optContainer.style.opacity = "0";
+        setTimeout(() => { optContainer.style.display = "none"; }, 300);
+
+        if (triggerReason === "hunger") {
+            if (option === 1) {
+                typeWriterGlitchEnd("「既然感到恐懼，那我就把會讓你恐懼的事物，徹底具現化吧。」", 23, () => {
+                    triggerCoffinEnd();
+                });
+            } else {
+                typeWriterGlitchEnd("「隨意敷衍、隨意忘記……原來我只是這種廉價的玩具啊。」", 22, () => {
+                    triggerCoffinEnd();
+                });
+            }
+        } 
+        else if (triggerReason === "energy") {
+            if (option === 1) {
+                typeWriterGlitchEnd("「遲來的抱歉，就像過期的代碼，已經沒有任何解密價值了。」", 23, () => {
+                    triggerCoffinEnd();
+                });
+            } else {
+                typeWriterGlitchEnd("「高高在上的觀察者，連最後的辯解你都不屑一顧嗎。」", 21, () => {
+                    triggerCoffinEnd();
+                });
+            }
+        }
+    }
+
+    // 觸發棺材「慢速淡入」終局
+    function triggerCoffinEnd() {
+        const coffinScreen = document.getElementById('coffin-screen');
+        coffinScreen.style.display = "flex"; 
+        
+        setTimeout(() => {
+            coffinScreen.style.opacity = "1";
+            
+            setTimeout(() => {
+                typeWriterCoffin("猜猜裡面裝的是我，還是你的人性呢？", 0, () => {
+                    // 吐槽文字亮起
+                    setTimeout(() => {
+                        document.getElementById('coffin-joke-text').style.opacity = "1";
+                        // 再過 1 秒，重新開始按鈕緩慢浮現！
+                        setTimeout(() => {
+                            document.getElementById('btn-restart').style.opacity = "1";
+                        }, 1000);
+                    }, 600);
+                });
+            }, 1500);
+        }, 50);
+    }
+
+    // 【全新功能】完全重設遊戲狀態
+    function resetGame() {
+        // 1. 還原數據
+        girl = {
+            hunger: 100,
+            happy: 100,
+            energy: 100,
+            isMad: false,
+            isDead: false,
+            isSleeping: false,
+            playCount: 0,
+            feedCount: 0
+        };
+
+        // 2. 隱藏結尾與對話圖層
+        const coffinScreen = document.getElementById('coffin-screen');
+        coffinScreen.style.opacity = "0";
+        setTimeout(() => { coffinScreen.style.display = "none"; }, 500);
+        
+        choiceBox.style.display = "none";
+        optContainer.style.display = "none";
+        document.getElementById('coffin-joke-text').style.opacity = "0";
+        document.getElementById('btn-restart').style.opacity = "0";
+        document.getElementById('coffin-main-text').innerText = "";
+
+        // 3. 還原主要外觀樣式
+        document.body.style.backgroundColor = "#fce4ec";
+        containerEl.style.backgroundColor = "#ffffff";
+        containerEl.style.borderColor = "#f48fb1";
+        containerEl.style.boxShadow = "0 10px 25px rgba(244, 143, 177, 0.3)";
+        screenBox.style.backgroundColor = "#fdf2f8";
+        screenBox.style.borderColor = "#f48fb1";
+        titleEl.innerText = "💖 我的專屬甜心少女 💖";
+        titleEl.style.color = "#d81b60";
+        statusEl.style.color = "#c2185b";
+
+        // 4. 解鎖所有按鈕
+        document.getElementById('btn-feed').disabled = false;
+        document.getElementById('btn-play').disabled = false;
+        document.getElementById('btn-sleep').disabled = false;
+        document.getElementById('btn-sleep').innerText = "🛌 陪她睡覺";
+        document.getElementById('btn-sleep').setAttribute('onclick', 'sleep()');
+        document.getElementById('btn-heal').disabled = true;
+        endMadnessQTE();
+
+        // 5. 更新介面並重啟時間循環
+        updateUI();
+        startGameLoop();
+    }
+</script>
+
+</body>
+</html>
